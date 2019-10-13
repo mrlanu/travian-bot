@@ -3,8 +3,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 class Util {
 
@@ -30,5 +29,4 @@ class Util {
     }
         return oases;
     }
-
 }

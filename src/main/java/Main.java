@@ -1,4 +1,5 @@
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 
 public class Main {
@@ -8,7 +9,7 @@ public class Main {
     }
 
     static void run() {
-        try (Game game = new Game("Баба Яга", "28335555");
+        try (Game game = new Game();
              BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))){
             while (true) {
                 System.out.println("What do you like to do ?");

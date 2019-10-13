@@ -1,9 +1,12 @@
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.*;
 
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 import java.util.stream.Collectors;
 
 public class Game implements AutoCloseable {
@@ -11,12 +14,25 @@ public class Game implements AutoCloseable {
     private String userName;
     private String password;
     private WebClient webClient;
+    private String server;
+    private String pathToFileAllOases;
+    private String pathToAllElephants;
 
-    Game(String userName, String password) throws IOException {
-        this.userName = userName;
-        this.password = password;
-
+    Game() throws IOException {
+        initProperties();
         init();
+    }
+
+    private void initProperties() throws IOException {
+        File file = new File("src/main/resources/application.properties");
+        Properties properties = new Properties();
+        properties.load(new FileReader(file));
+
+        this.server = properties.getProperty("server");
+        this.userName = properties.getProperty("userName");
+        this.password = properties.getProperty("password");
+        this.pathToFileAllOases = properties.getProperty("file.allOases");
+        this.pathToAllElephants = properties.getProperty("file.allElephants");
     }
 
     private void init() throws IOException {
@@ -32,7 +48,7 @@ public class Game implements AutoCloseable {
         List<Oasis> result = new ArrayList<>();
         for (int y = myVillageY + length; y >= myVillageY - length; y = y - 7){
             for (int x = myVillageX - length; x <= myVillageX + length; x = x + 10){
-                HtmlPage detailPage = webClient.getPage(String.format("https://ts5.travian.ru/karte.php?x=%d&y=%d", x, y));
+                HtmlPage detailPage = webClient.getPage(String.format("%s/karte.php?x=%d&y=%d",server, x, y));
                 List<HtmlElement> tileRow = detailPage.getByXPath("//div[@class='mapContainerData']//div[@class='tileRow']//div");
                 tileRow.forEach(t -> {
                     String s = t.getAttribute("class");
@@ -45,7 +61,7 @@ public class Game implements AutoCloseable {
                 });
             }
         }
-        Util.writeToFile(result, "/home/lanu/oases.json");
+        Util.writeToFile(result, pathToFileAllOases);
         System.out.println("Oases found - " + result.size());
         System.out.println("--------------------------------------------");
     }
@@ -58,7 +74,7 @@ public class Game implements AutoCloseable {
 
         oases.forEach(oasis -> {
             try {
-                HtmlPage detailPage = webClient.getPage(String.format("https://ts5.travian.ru/position_details.php?x=%d&y=%d", oasis.getX(), oasis.getY()));
+                HtmlPage detailPage = webClient.getPage(String.format("%s/position_details.php?x=%d&y=%d",server, oasis.getX(), oasis.getY()));
                 List<HtmlElement> tileRow = detailPage.getByXPath("//table[@id='troop_info']//img[@alt='Слон']");
                 if (tileRow.size() > 0){
                     oasis.setHasElephants(true);
@@ -73,15 +89,15 @@ public class Game implements AutoCloseable {
                 .filter(Oasis::isHasElephants)
                 .collect(Collectors.toList());
 
-        Util.writeToFile(filteredResult, "/home/lanu/oases-elephant.json");
+        Util.writeToFile(filteredResult, pathToAllElephants);
         System.out.println("Oases with elephants - " + filteredResult.size());
-        System.out.println("Complete. Check the oases-elephant.json");
+        System.out.println("Complete. Check the " + pathToAllElephants);
         System.out.println("--------------------------------------------");
     }
 
     private void login() throws IOException {
 
-        HtmlPage startPage = webClient.getPage("https://ts5.travian.ru/dorf1.php");
+        HtmlPage startPage = webClient.getPage(server + "/dorf1.php");
         HtmlForm loginForm = startPage.getFormByName("login");
         HtmlButton button = loginForm.getButtonByName("s1");
         HtmlTextInput textField = loginForm.getInputByName("name");
