@@ -16,11 +16,11 @@ class Util {
         }
     }
 
-    static List<Oasis> readFromFile() {
+    static List<Oasis> readFromFile(String file) {
         List<Oasis> oases = new ArrayList<>();
 
         Gson gson = new GsonBuilder().create();
-        try (FileReader reader = new FileReader("/home/lanu/oases.json")){
+        try (FileReader reader = new FileReader(file)){
             oases = gson.fromJson(reader, new TypeToken<List<Oasis>>() {}.getType());
         } catch (IOException e)
 

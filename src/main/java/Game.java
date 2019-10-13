@@ -70,7 +70,7 @@ public class Game implements AutoCloseable {
 
         System.out.println("Searching all elephants...");
 
-        List<Oasis> oases = Util.readFromFile();
+        List<Oasis> oases = Util.readFromFile(pathToFileAllOases);
 
         oases.forEach(oasis -> {
             try {
@@ -116,13 +116,5 @@ public class Game implements AutoCloseable {
     @Override
     public void close() throws Exception {
         webClient.close();
-    }
-
-    public void setUserName(String userName) {
-        this.userName = userName;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
     }
 }
