@@ -29,10 +29,10 @@ public class Game implements AutoCloseable {
         properties.load(new FileReader(file));
 
         this.server = properties.getProperty("server");
-        this.userName = properties.getProperty("userName");
-        this.password = properties.getProperty("password");
-        this.pathToFileAllOases = properties.getProperty("file.allOases");
-        this.pathToAllElephants = properties.getProperty("file.allElephants");
+        this.userName = properties.getProperty("user.name");
+        this.password = properties.getProperty("user.password");
+        this.pathToFileAllOases = properties.getProperty("file.all-oases");
+        this.pathToAllElephants = properties.getProperty("file.all-elephants");
     }
 
     private void init() throws IOException {
