@@ -1,9 +1,13 @@
+import com.gargoylesoftware.htmlunit.HttpMethod;
+import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebClient;
+import com.gargoylesoftware.htmlunit.WebRequest;
 import com.gargoylesoftware.htmlunit.html.*;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -111,6 +115,50 @@ public class Game implements AutoCloseable {
         HtmlPage currentPage = button.click();
         HtmlAnchor heroName = (HtmlAnchor) currentPage.getByXPath("//div[@class='playerName']//a[@href='spieler.php']").get(1);
         System.out.println(String.format("Hello - %s", heroName.asText()));
+    }
+
+    public void tryAttack() throws IOException {
+
+        /*HtmlTable table = (HtmlTable) confirmPage.getElementById("short_info");
+        System.out.println(table);
+        System.out.println("Cell (1,2)=" + table.getCellAt(1,2));
+*/
+        HtmlButton confButton = (HtmlButton) createWave("3", "-34", "78").getElementById("btn_ok");
+        HtmlButton confButton2 = (HtmlButton) createWave("2", "-34", "78").getElementById("btn_ok");
+
+        confButton.click();
+        /*try {
+            TimeUnit.MILLISECONDS.sleep(200);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }*/
+        confButton2.click();
+
+        System.out.println("TextField =====>>>>>");
+        System.out.println(confButton);
+    }
+
+    public HtmlPage createWave(String troops, String x, String y) throws IOException {
+        URL url = new URL(String.format("%s/build.php?tt=2&gid=16",server));
+        WebRequest requestSettings = new WebRequest(url, HttpMethod.POST);
+
+        requestSettings.setRequestBody("redeployHero=&troops%5B0%5D%5Bt1%5D%3E=0&troops%5B0%5D%5Bt2%5D%3E=0&troops%5B0%5D%5Bt3%5D%3E=0&troops%5B0%5D%5Bt4%5D%3E=2&troops%5B0%5D%5Bt5%5D%3E=0&troops%5B0%5D%5Bt6%5D%3E=0&troops%5B0%5D%5Bt7%5D%3E=0&troops%5B0%5D%5Bt8%5D%3E=0&troops%5B0%5D%5Bt9%5D%3E=0&troops%5B0%5D%5Bt10%5D%3E=0&troops%5B0%5D%5Bt11%5D%3E=0&currentDid=18005&b=2&dname=&x=-34&y=78");
+
+        Page redirectPage = webClient.getPage(requestSettings);
+        System.out.println(redirectPage);
+    /*HtmlPage pSPage = webClient.getPage(String.format("%s/build.php?tt=2&id=39",server));
+        HtmlForm attackForm = pSPage.getFormByName("snd");
+        HtmlButton buttonByName = attackForm.getButtonByName("s1");
+        HtmlTextInput textField = attackForm.getInputByName("troops[0][t4]");
+        HtmlTextInput textFieldX = attackForm.getInputByName("x");
+        HtmlTextInput textFieldY = attackForm.getInputByName("y");
+        HtmlRadioButtonInput radio = attackForm.getInputByName("c");
+        radio.setDefaultValue("3");
+        textFieldX.type(x);
+        textFieldY.type(y);
+        textField.type(troops);
+        System.out.println(buttonByName.getDefaultValue());*/
+        return null;//buttonByName.click();
     }
 
     @Override

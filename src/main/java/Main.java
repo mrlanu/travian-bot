@@ -14,7 +14,8 @@ public class Main {
                 System.out.println("What do you like to do ?");
                 System.out.println("Find all oases - 1");
                 System.out.println("Find Elephants - 2");
-                System.out.println("Exit - 3");
+                System.out.println("Try Attack - 3");
+                System.out.println("Exit - 4");
                 int choice = Integer.parseInt(reader.readLine());
                 if (choice == 1){
                     System.out.println("What is your village X coordinate ?");
@@ -24,8 +25,10 @@ public class Main {
                     System.out.println("What a radius do You like ?");
                     int r = Integer.parseInt(reader.readLine());
                     game.findAllOases(x, y, r);
-                } else if (choice == 2){
+                } else if (choice == 2) {
                     game.checkForElephants();
+                } else if (choice == 3){
+                    game.tryAttack();
                 } else if (choice == 3){
                     break;
                 }
