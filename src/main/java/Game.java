@@ -1,16 +1,22 @@
-import com.gargoylesoftware.htmlunit.HttpMethod;
-import com.gargoylesoftware.htmlunit.Page;
-import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.WebRequest;
+import com.gargoylesoftware.htmlunit.*;
 import com.gargoylesoftware.htmlunit.html.*;
+import com.gargoylesoftware.htmlunit.util.Cookie;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
+import java.net.URI;
 import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 public class Game implements AutoCloseable {
@@ -21,6 +27,7 @@ public class Game implements AutoCloseable {
     private String server;
     private String pathToFileAllOases;
     private String pathToAllElephants;
+    boolean needC = true;
 
     Game() throws IOException {
         initProperties();
@@ -119,37 +126,31 @@ public class Game implements AutoCloseable {
 
     public void tryAttack() throws IOException {
 
-        /*HtmlTable table = (HtmlTable) confirmPage.getElementById("short_info");
-        System.out.println(table);
-        System.out.println("Cell (1,2)=" + table.getCellAt(1,2));
-*/
-        HtmlButton confButton = (HtmlButton) createWave("3", "-34", "78").getElementById("btn_ok");
-        HtmlButton confButton2 = (HtmlButton) createWave("2", "-34", "78").getElementById("btn_ok");
+        HtmlButton confButton = (HtmlButton) createWave("3", "-35", "79").getElementById("btn_ok");
+        System.out.println(confButton.getTextContent());
+        confButton.click();
+        /*HtmlButton confButton2 = (HtmlButton) createWave("2", "-34", "78").getElementById("btn_ok");
 
         confButton.click();
-        /*try {
+        *//*try {
             TimeUnit.MILLISECONDS.sleep(200);
         } catch (InterruptedException e) {
             e.printStackTrace();
-        }*/
+        }*//*
         confButton2.click();
 
         System.out.println("TextField =====>>>>>");
-        System.out.println(confButton);
+        System.out.println(confButton);*/
     }
 
-    public HtmlPage createWave(String troops, String x, String y) throws IOException {
-        URL url = new URL(String.format("%s/build.php?tt=2&gid=16",server));
-        WebRequest requestSettings = new WebRequest(url, HttpMethod.POST);
+    private HtmlPage createWave(String troops, String x, String y) throws IOException {
 
-        requestSettings.setRequestBody("redeployHero=&troops%5B0%5D%5Bt1%5D%3E=0&troops%5B0%5D%5Bt2%5D%3E=0&troops%5B0%5D%5Bt3%5D%3E=0&troops%5B0%5D%5Bt4%5D%3E=2&troops%5B0%5D%5Bt5%5D%3E=0&troops%5B0%5D%5Bt6%5D%3E=0&troops%5B0%5D%5Bt7%5D%3E=0&troops%5B0%5D%5Bt8%5D%3E=0&troops%5B0%5D%5Bt9%5D%3E=0&troops%5B0%5D%5Bt10%5D%3E=0&troops%5B0%5D%5Bt11%5D%3E=0&currentDid=18005&b=2&dname=&x=-34&y=78");
-
-        Page redirectPage = webClient.getPage(requestSettings);
-        System.out.println(redirectPage);
-    /*HtmlPage pSPage = webClient.getPage(String.format("%s/build.php?tt=2&id=39",server));
+        //setup initial values for attack
+        String result;
+        StringBuilder sParams = new StringBuilder();
+        HtmlPage pSPage = webClient.getPage(String.format("%s/build.php?tt=2&id=39",server));
         HtmlForm attackForm = pSPage.getFormByName("snd");
-        HtmlButton buttonByName = attackForm.getButtonByName("s1");
-        HtmlTextInput textField = attackForm.getInputByName("troops[0][t4]");
+        HtmlTextInput textField = attackForm.getInputByName("troops[0][t5]");
         HtmlTextInput textFieldX = attackForm.getInputByName("x");
         HtmlTextInput textFieldY = attackForm.getInputByName("y");
         HtmlRadioButtonInput radio = attackForm.getInputByName("c");
@@ -157,8 +158,79 @@ public class Game implements AutoCloseable {
         textFieldX.type(x);
         textFieldY.type(y);
         textField.type(troops);
-        System.out.println(buttonByName.getDefaultValue());*/
-        return null;//buttonByName.click();
+
+        //create parameters for request
+        attackForm.getElementsByTagName("input")
+                .stream()
+                .map(i -> (HtmlInput) i)
+                .peek(input -> {
+                    String inputName = input.getNameAttribute();
+                    if(inputName.equals("redeployHero")) {
+                        sParams.append("redeployHero=&");
+                    }else if (inputName.matches("^t\\d") || inputName.matches("x|y")){
+                        sParams.append(inputName + "=" + input.getValueAttribute() + "&");
+                    }else if (inputName.equals("c")) {
+
+                    }else {
+                        sParams.append(inputName + "=" + input.getValueAttribute() + "&");
+                    }
+                })
+                .filter(i -> i.getNameAttribute().equals("c") && i.isChecked())
+                .forEach(i2 -> sParams.append("c=" + i2.getValueAttribute() + "&"));
+
+        result = sParams.toString();
+
+        System.out.println(result.substring(0, result.length() - 1));
+
+        //get Cookie
+        URL url = new URL(String.format("%s/build.php?tt=2&id=39",server));
+        Set<Cookie> cookieSet = webClient.getCookies(url);
+        StringBuilder cB = new StringBuilder();
+        cookieSet.forEach(cookie -> cB.append(cookie));
+        String cookie = cB.toString();
+
+        //send async request via HttpClient
+        HttpClient httpClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_2)
+                .build();
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .POST(HttpRequest.BodyPublishers.ofString(result))
+                .uri(URI.create(String.format("%s/build.php?tt=2&id=39",server)))
+                .header("Content-Type", "application/x-www-form-urlencoded; charset=utf-8")
+                .header("Cookie", cookie)
+                .build();
+
+        try {
+            CompletableFuture<HttpResponse<String>> response = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+            TimeUnit.MILLISECONDS.sleep(200);
+            CompletableFuture<HttpResponse<String>> response2 = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+            System.out.println("Request has been sent.");
+            String body = response.thenApply(HttpResponse::body).get(5, TimeUnit.SECONDS);
+            String body2 = response2.thenApply(HttpResponse::body).get(5, TimeUnit.SECONDS);
+
+            print(body);
+            System.out.println("----------------------");
+            print(body2);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            e.printStackTrace();
+        }
+
+        return null;//redirectPage;
+    }
+
+    private void print(String body){
+        try (BufferedReader reader = new BufferedReader(new StringReader(body))){
+            StringBuilder stringBuilder = new StringBuilder();
+            String nextLine;
+            while ((nextLine = reader.readLine()) != null) {
+                if (nextLine.contains("<input") || (nextLine.contains("btn_ok") && nextLine.contains("<button"))){
+                    System.out.println(nextLine);
+                }
+            }
+        }catch (Exception e){
+            System.out.println(e);
+        }
     }
 
     @Override
